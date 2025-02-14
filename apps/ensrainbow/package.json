@@ -24,13 +24,14 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "@hono/node-server": "^1.4.1",
+    "@ensnode/ensrainbow-sdk": "workspace:*",
+    "@ensnode/utils": "workspace:*",
+    "@types/node-fetch": "^2.6.12",
     "bun": "^1.2.2",
     "classic-level": "^1.4.1",
-    "@ensnode/utils": "workspace:*",
-    "@ensnode/ensrainbow-sdk": "workspace:*",
-    "hono": "catalog:",
+    "node-fetch": "^3.3.2",
     "progress": "^2.0.3",
+    "undici": "^7.3.0",
     "viem": "catalog:",
     "yargs": "^17.7.2"
   },
@@ -41,6 +42,7 @@
     "@types/supertest": "^6.0.2",
     "@types/yargs": "^17.0.32",
     "@vitest/coverage-v8": "^1.6.0",
+    "bun-types": "^1.0.25",
     "supertest": "^6.3.4",
     "typescript": "^5.3.3",
     "vitest": "^1.6.0"

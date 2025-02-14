@@ -1,3 +1,4 @@
+/// <reference types="bun-types" />
 import { promises as fs } from "fs";
 import { ErrorCode, StatusCode } from "@ensnode/ensrainbow-sdk/consts";
 import { labelHashToBytes } from "@ensnode/ensrainbow-sdk/label-utils";
@@ -7,7 +8,6 @@ import type {
   HealResponse,
   HealSuccess,
 } from "@ensnode/ensrainbow-sdk/types";
-import { serve } from "@hono/node-server";
 import { labelhash } from "viem";
 /// <reference types="vitest" />
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
@@ -19,15 +19,14 @@ import { createServer } from "./server-command";
 describe("Server Command Tests", () => {
   let db: ENSRainbowDB;
   const port = 3223;
-  let app: ReturnType<typeof createServer>;
-  let server: ReturnType<typeof serve>;
+  let server: ReturnType<typeof Bun.serve>;
 
   beforeAll(async () => {
     db = await createDatabase("test-data-server", "error");
-    app = createServer(db, console);
+    const app = createServer(db, console);
 
     // Start the server on a different port than what ENSRainbow defaults to
-    server = serve({
+    server = Bun.serve({
       fetch: app.fetch,
       port,
     });
@@ -42,7 +41,7 @@ describe("Server Command Tests", () => {
 
   afterAll(async () => {
     // Cleanup
-    await server.close();
+    server.stop();
     await db.close();
 
     // Remove test database directory
@@ -70,9 +69,9 @@ describe("Server Command Tests", () => {
 
     it("should handle missing labelhash parameter", async () => {
       const response = await fetch(`http://localhost:${port}/v1/heal/`);
-      expect(response.status).toBe(404); // Hono returns 404 for missing parameters
+      expect(response.status).toBe(404);
       const text = await response.text();
-      expect(text).toBe("404 Not Found"); // Hono's default 404 response
+      expect(text).toBe("404 Not Found");
     });
 
     it("should reject invalid labelhash format", async () => {
