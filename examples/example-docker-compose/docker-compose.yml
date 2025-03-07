@@ -1,5 +1,5 @@
 services:
-  ensindex:
+  ensindexer:
     container_name: ensindexer
     image: ghcr.io/namehash/ensnode/ensindexer:latest
     ports:
