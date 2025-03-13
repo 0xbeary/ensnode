@@ -1,7 +1,10 @@
 name: Build ENSRainbow-v2-data image
 
-on: workflow_dispatch
-
+on: 
+    workflow_dispatch:
+    push:
+      branches:
+        - feat/remove-progress-bar
 jobs:
   image-build-and-push:
     runs-on: ubuntu-latest

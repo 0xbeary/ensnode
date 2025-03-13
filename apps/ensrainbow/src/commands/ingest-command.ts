@@ -130,7 +130,7 @@ export async function ingestCommand(options: IngestCommandOptions): Promise<void
         batch = db.batch();
         batchSize = 0;
       }
-      bar.tick();
+      // bar.tick();
     }
 
     // Write any remaining entries
