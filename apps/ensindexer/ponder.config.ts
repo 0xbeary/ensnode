@@ -2,24 +2,22 @@ import config from "@/config/app-config";
 import { validateConfig } from "@/config/validations";
 import { mergePonderConfigs } from "@/lib/merge-ponder-configs";
 import { MergedTypes, getActivePlugins } from "@/lib/plugin-helpers";
-import * as basenamesPlugin from "@/plugins/basenames/basenames.plugin";
-import * as lineaNamesPlugin from "@/plugins/lineanames/lineanames.plugin";
-import * as subgraphPlugin from "@/plugins/subgraph/subgraph.plugin";
-import * as threednsPlugin from "@/plugins/threedns/threedns.plugin";
-import { DatasourceName } from "@ensnode/ens-deployments";
+import { AVAILABLE_PLUGINS } from "@/plugins";
 
 ////////
-// First, generate MergedPonderConfig type representing the merged types of each plugin's `config`,
-// so ponder's typechecking of the indexing handlers and their event arguments is correct.
+// Next, filter ALL_PLUGINS by those that the user has selected (via ACTIVE_PLUGINS), panicking if a
+// user-specified plugin is unsupported by the Datasources available in SELECTED_ENS_DEPLOYMENT.
 ////////
-export const AVAILABLE_PLUGINS = [
-  subgraphPlugin,
-  basenamesPlugin,
-  lineaNamesPlugin,
-  threednsPlugin,
-] as const;
 
-export type MergedPonderConfig = MergedTypes<(typeof AVAILABLE_PLUGINS)[number]["config"]> & {
+const activePlugins = getActivePlugins(AVAILABLE_PLUGINS, config);
+
+////////
+// Merge the plugins' configs into a single ponder config, including injected dependencies.
+////////
+
+export type MergedPonderConfig = MergedTypes<
+  ReturnType<(typeof AVAILABLE_PLUGINS)[number]["config"]>
+> & {
   /**
    * The environment variables that change the behavior of the indexer.
    * It's important to include all environment variables that change the behavior
@@ -30,24 +28,9 @@ export type MergedPonderConfig = MergedTypes<(typeof AVAILABLE_PLUGINS)[number][
   };
 };
 
-////////
-// Next, filter ALL_PLUGINS by those that the user has selected (via ACTIVE_PLUGINS), panicking if a
-// user-specified plugin is unsupported by the Datasources available in SELECTED_ENS_DEPLOYMENT.
-////////
-
-// the available Datasources are those that the selected ENSDeployment defines
-const availableDatasourceNames = Object.keys(config.selectedEnsDeployment) as DatasourceName[];
-
-// filter the set of available plugins by those that are 'active'
-const activePlugins = getActivePlugins(AVAILABLE_PLUGINS, config.plugins, availableDatasourceNames);
-
-////////
-// Merge the plugins' configs into a single ponder config, including injected dependencies.
-////////
-
-// merge the resulting configs into the config we return to Ponder
+// merge the individual ponder configs from each plugin into the config we return to Ponder
 const ponderConfig = activePlugins
-  .map((plugin) => plugin.config)
+  .map((plugin) => plugin.config())
   .reduce((acc, val) => mergePonderConfigs(acc, val), {}) as MergedPonderConfig;
 
 // set the indexing behavior dependencies
@@ -57,7 +40,7 @@ ponderConfig.indexingBehaviorDependencies = {
 
 // Validate the config before we activate the plugins. These validations go beyond simple type
 // validations and ensure any relationships between environment variables are correct.
-validateConfig(config, ponderConfig);
+validateConfig(config, ponderConfig.networks);
 
 ////////
 // Activate the active plugins' handlers, which register indexing handlers with Ponder.

@@ -29,14 +29,18 @@ import { Label, Name, PluginName } from "@ensnode/utils";
  * basenamesNamespace("Registry"); // returns "basenames/Registry"
  * ```
  */
-export function makePluginNamespace<PLUGIN_NAME extends PluginName>(pluginName: PLUGIN_NAME) {
+export function makePluginNamespace<PLUGIN_NAME extends PluginName>(
+  pluginName: PLUGIN_NAME
+) {
   if (/[.:]/.test(pluginName)) {
-    throw new Error("Reserved character: Plugin namespace prefix cannot contain '.' or ':'");
+    throw new Error(
+      "Reserved character: Plugin namespace prefix cannot contain '.' or ':'"
+    );
   }
 
   /** Creates a namespaced contract name */
   return function pluginNamespace<CONTRACT_NAME extends string>(
-    contractName: CONTRACT_NAME,
+    contractName: CONTRACT_NAME
   ): `${PLUGIN_NAME}/${CONTRACT_NAME}` {
     return `${pluginName}/${contractName}`;
   };
@@ -58,47 +62,28 @@ export function makePluginNamespace<PLUGIN_NAME extends PluginName>(pluginName: 
  */
 export function getActivePlugins<PLUGIN extends ENSIndexerPlugin>(
   availablePlugins: readonly PLUGIN[],
-  requestedPluginNames: Set<PluginName>,
-  availableDatasourceNames: DatasourceName[],
+  config: ENSIndexerConfig
 ): PLUGIN[] {
   // filter allPlugins by those that the user requested
-  const activePlugins = availablePlugins.filter((plugin) =>
-    requestedPluginNames.has(plugin.pluginName),
+  return availablePlugins.filter((plugin) =>
+    config.plugins.has(plugin.pluginName)
   );
-
-  // validate that each active plugin's requiredDatasources are available in availableDatasourceNames
-  for (const plugin of activePlugins) {
-    const hasRequiredDatasources = plugin.requiredDatasources.every((datasourceName) =>
-      availableDatasourceNames.includes(datasourceName),
-    );
-
-    if (!hasRequiredDatasources) {
-      throw new Error(
-        `Requested plugin '${plugin.pluginName}' cannot be activated for the ${
-          config.ensDeploymentChain
-        } deployment. ${
-          plugin.pluginName
-        } specifies dependent datasources: ${plugin.requiredDatasources.join(
-          ", ",
-        )}, but available datasources in the ${
-          config.ensDeploymentChain
-        } deployment are: ${availableDatasourceNames.join(", ")}.`,
-      );
-    }
-  }
-
-  return activePlugins;
 }
 
 // Helper type to merge multiple types into one
-export type MergedTypes<T> = (T extends any ? (x: T) => void : never) extends (x: infer R) => void
+export type MergedTypes<T> = (T extends any ? (x: T) => void : never) extends (
+  x: infer R
+) => void
   ? R
   : never;
 
 /**
  * Describes an ENSIndexerPlugin used within the ENSIndexer project.
  */
-export interface ENSIndexerPlugin<PLUGIN_NAME extends PluginName = PluginName, CONFIG = unknown> {
+export interface ENSIndexerPlugin<
+  PLUGIN_NAME extends PluginName = PluginName,
+  CONFIG = unknown
+> {
   /**
    * A unique plugin name for identification
    */
@@ -125,7 +110,9 @@ export interface ENSIndexerPlugin<PLUGIN_NAME extends PluginName = PluginName, C
 /**
  * An ENSIndexerPlugin's handlers are provided runtime information about their respective plugin.
  */
-export type ENSIndexerPluginHandlerArgs<PLUGIN_NAME extends PluginName = PluginName> = {
+export type ENSIndexerPluginHandlerArgs<
+  PLUGIN_NAME extends PluginName = PluginName
+> = {
   pluginName: PluginName;
   namespace: ReturnType<typeof makePluginNamespace<PLUGIN_NAME>>;
 };
@@ -134,7 +121,7 @@ export type ENSIndexerPluginHandlerArgs<PLUGIN_NAME extends PluginName = PluginN
  * An ENSIndexerPlugin accepts ENSIndexerPluginHandlerArgs and registers ponder event handlers.
  */
 export type ENSIndexerPluginHandler<PLUGIN_NAME extends PluginName> = (
-  args: ENSIndexerPluginHandlerArgs<PLUGIN_NAME>,
+  args: ENSIndexerPluginHandlerArgs<PLUGIN_NAME>
 ) => void;
 
 /**
@@ -150,13 +137,18 @@ export const activateHandlers =
     handlers: Promise<{ default: ENSIndexerPluginHandler<PLUGIN_NAME> }>[];
   }) =>
   async () => {
-    await Promise.all(handlers).then((modules) => modules.map((m) => m.default(args)));
+    await Promise.all(handlers).then((modules) =>
+      modules.map((m) => m.default(args))
+    );
   };
 
 /**
  * Defines a ponder#NetworksConfig for a single, specific chain.
  */
-export function networksConfigForChain(config: ENSIndexerConfig, chainId: number) {
+export function networksConfigForChain(
+  config: ENSIndexerConfig,
+  chainId: number
+) {
   return {
     [chainId.toString()]: {
       chainId: chainId,
@@ -172,7 +164,8 @@ export function networksConfigForChain(config: ENSIndexerConfig, chainId: number
       // throw an error so we don't need to handle undefined here with a default.
       // That is already handled in our schema validation so when the RPC url is added
       // this will not be undefined.
-      maxRequestsPerSecond: config.indexedChains[chainId]?.rpcMaxRequestsPerSecond,
+      maxRequestsPerSecond:
+        config.indexedChains[chainId]?.rpcMaxRequestsPerSecond,
       // NOTE: disable cache on local chains (e.g. Anvil, Ganache)
       ...((chainId === 31337 || chainId === 1337) && { disableCache: true }),
     } satisfies NetworkConfig,
@@ -183,10 +176,9 @@ export function networksConfigForChain(config: ENSIndexerConfig, chainId: number
  * Defines a `ponder#ContractConfig['network']` given a contract's config, constraining the contract's
  * indexing range by the globally configured blockrange.
  */
-export function networkConfigForContract<CONTRACT_CONFIG extends ContractConfig>(
-  chain: Chain,
-  contractConfig: CONTRACT_CONFIG,
-) {
+export function networkConfigForContract<
+  CONTRACT_CONFIG extends ContractConfig
+>(chain: Chain, contractConfig: CONTRACT_CONFIG) {
   return {
     [chain.id.toString()]: {
       address: contractConfig.address, // provide per-network address if available
@@ -206,13 +198,18 @@ const POSSIBLE_PREFIXES = [
  * @param uri - The base64-encoded JSON metadata URI string
  * @returns A tuple containing [label, name] if parsing succeeds, or [null, null] if it fails
  */
-export function parseLabelAndNameFromOnChainMetadata(uri: string): [Label, Name] | [null, null] {
+export function parseLabelAndNameFromOnChainMetadata(
+  uri: string
+): [Label, Name] | [null, null] {
   if (!POSSIBLE_PREFIXES.some((prefix) => uri.startsWith(prefix))) {
     // console.error("Invalid tokenURI format:", uri);
     return [null, null];
   }
 
-  const base64String = POSSIBLE_PREFIXES.reduce((memo, prefix) => memo.replace(prefix, ""), uri);
+  const base64String = POSSIBLE_PREFIXES.reduce(
+    (memo, prefix) => memo.replace(prefix, ""),
+    uri
+  );
   const jsonString = Buffer.from(base64String, "base64").toString("utf-8");
   const metadata = JSON.parse(jsonString);
 

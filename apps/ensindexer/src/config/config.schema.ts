@@ -1,5 +1,12 @@
-import { validateContractConfigs } from "@/config/validations";
-import { type ENSDeploymentGlobalType, ENSDeployments } from "@ensnode/ens-deployments";
+import {
+  validateActivePlugins,
+  validateContractConfigs,
+} from "@/config/validations";
+import { AVAILABLE_PLUGINS } from "@/plugins";
+import {
+  type ENSDeploymentGlobalType,
+  ENSDeployments,
+} from "@ensnode/ens-deployments";
 import { PluginName } from "@ensnode/utils";
 import { parse as parseConnectionString } from "pg-connection-string";
 import { z } from "zod/v4";
@@ -41,7 +48,7 @@ const parseEnsDeploymentChain = () =>
     .enum(Object.keys(ENSDeployments) as [keyof typeof ENSDeployments], {
       error: (issue) => {
         return `Invalid ENS_DEPLOYMENT_CHAIN. Supported chains are: ${Object.keys(
-          ENSDeployments,
+          ENSDeployments
         ).join(", ")}`;
       },
     })
@@ -58,7 +65,7 @@ const parseGlobalBlockrange = () =>
         val.startBlock === undefined ||
         val.endBlock === undefined ||
         val.startBlock <= val.endBlock,
-      { error: "END_BLOCK must be greater than or equal to START_BLOCK." },
+      { error: "END_BLOCK must be greater than or equal to START_BLOCK." }
     );
 
 const parseEnsNodePublicUrl = () =>
@@ -94,15 +101,15 @@ const parsePlugins = () =>
         .array(
           z.enum(PluginName, {
             error: `ACTIVE_PLUGINS must be a comma separated list with at least one valid plugin name. Valid plugins are: ${Object.values(
-              PluginName,
+              PluginName
             ).join(", ")}`,
-          }),
+          })
         )
         .min(1, {
           error: `ACTIVE_PLUGINS must be a comma separated list with at least one valid plugin name. Valid plugins are: ${Object.values(
-            PluginName,
+            PluginName
           ).join(", ")}`,
-        }),
+        })
     )
     .refine((arr) => arr.length === new Set(arr).size, {
       error: "ACTIVE_PLUGINS cannot contain duplicate values",
@@ -115,7 +122,7 @@ const parseHealReverseAddresses = () =>
     .pipe(
       z.enum(["true", "false"], {
         error: "HEAL_REVERSE_ADDRESSES must be 'true' or 'false'.",
-      }),
+      })
     )
     .transform((val) => val === "true")
     .default(DEFAULT_HEAL_REVERSE_ADDRESSES);
@@ -136,7 +143,8 @@ const parseEnsRainbowEndpointUrl = () =>
 
 const parseIndexedChains = () =>
   z.record(z.string().transform(Number), parseChainConfig(), {
-    error: "Chains configuration must be an object mapping numeric chain IDs to their configs.",
+    error:
+      "Chains configuration must be an object mapping numeric chain IDs to their configs.",
   });
 
 const parseDatabaseUrl = () =>
@@ -144,7 +152,10 @@ const parseDatabaseUrl = () =>
     [
       z.string().refine((url) => {
         try {
-          if (!url.startsWith("postgresql://") && !url.startsWith("postgres://")) {
+          if (
+            !url.startsWith("postgresql://") &&
+            !url.startsWith("postgres://")
+          ) {
             return false;
           }
           const config = parseConnectionString(url);
@@ -158,7 +169,7 @@ const parseDatabaseUrl = () =>
     {
       message:
         "Invalid PostgreSQL connection string. Expected format: postgresql://username:password@host:port/database",
-    },
+    }
   );
 
 const parseSelectedEnsDeployment = () => z.custom<ENSDeploymentGlobalType>();
@@ -178,11 +189,17 @@ const parseSelectedEnsDeployment = () => z.custom<ENSDeploymentGlobalType>();
  *  @param config - The configuration to check.
  * @returns `true` if the configuration is valid, otherwise an error is thrown.
  */
-const schemaInvariantChecks = (config: z.infer<typeof ENSIndexerConfigSchema>) => {
+const schemaInvariantChecks = (
+  config: z.infer<typeof ENSIndexerConfigSchema>
+) => {
   // Invariant for each plugin to check all contracts have a correct address defined
   config.plugins.forEach((plugin) => {
     validateContractConfigs(plugin, config);
   });
+
+  console.log("AVAILABLE_PLUGINS", AVAILABLE_PLUGINS);
+
+  validateActivePlugins(AVAILABLE_PLUGINS, config);
 
   return true;
 };
@@ -205,8 +222,11 @@ export const ENSIndexerConfigSchema = z
   // Add selectedEnsDeployment to the config after as it's a derived value
   .transform((config) => ({
     ...config,
-    selectedEnsDeployment: ENSDeployments[config.ensDeploymentChain] as ENSDeploymentGlobalType,
+    selectedEnsDeployment: ENSDeployments[
+      config.ensDeploymentChain
+    ] as ENSDeploymentGlobalType,
   }))
   .refine(schemaInvariantChecks, {
-    error: "Invalid configuration. Please check your config file and try again.",
+    error:
+      "Invalid configuration. Please check your config file and try again.",
   });

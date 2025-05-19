@@ -14,7 +14,10 @@ import { PluginName } from "@ensnode/utils";
  * The ThreeDNS plugin describes indexing behavior for the ThreeDNSOptimism & ThreeDNSBase Datasources.
  */
 export const pluginName = PluginName.ThreeDNS;
-export const requiredDatasources = [DatasourceName.ThreeDNSOptimism, DatasourceName.ThreeDNSBase];
+export const requiredDatasources = [
+  DatasourceName.ThreeDNSOptimism,
+  DatasourceName.ThreeDNSBase,
+];
 const { chain: optimism, contracts: optimismContracts } =
   appConfig.selectedEnsDeployment[DatasourceName.ThreeDNSOptimism];
 const { chain: base, contracts: baseContracts } =
@@ -22,28 +25,32 @@ const { chain: base, contracts: baseContracts } =
 
 const namespace = makePluginNamespace(pluginName);
 
-export const config = createConfig({
-  networks: {
-    ...networksConfigForChain(appConfig, optimism.id),
-    ...networksConfigForChain(appConfig, base.id),
-  },
-  contracts: {
-    [namespace("ThreeDNSToken")]: {
-      network: {
-        ...networkConfigForContract(optimism, optimismContracts.ThreeDNSToken),
-        ...networkConfigForContract(base, baseContracts.ThreeDNSToken),
-      },
-      abi: optimismContracts.ThreeDNSToken.abi,
+export const config = () =>
+  createConfig({
+    networks: {
+      ...networksConfigForChain(appConfig, optimism.id),
+      ...networksConfigForChain(appConfig, base.id),
     },
-    [namespace("Resolver")]: {
-      network: {
-        ...networkConfigForContract(optimism, optimismContracts.Resolver),
-        ...networkConfigForContract(base, baseContracts.Resolver),
+    contracts: {
+      [namespace("ThreeDNSToken")]: {
+        network: {
+          ...networkConfigForContract(
+            optimism,
+            optimismContracts.ThreeDNSToken
+          ),
+          ...networkConfigForContract(base, baseContracts.ThreeDNSToken),
+        },
+        abi: optimismContracts.ThreeDNSToken.abi,
       },
-      abi: optimismContracts.Resolver.abi,
+      [namespace("Resolver")]: {
+        network: {
+          ...networkConfigForContract(optimism, optimismContracts.Resolver),
+          ...networkConfigForContract(base, baseContracts.Resolver),
+        },
+        abi: optimismContracts.Resolver.abi,
+      },
     },
-  },
-});
+  });
 
 export const activate = activateHandlers({
   pluginName,
