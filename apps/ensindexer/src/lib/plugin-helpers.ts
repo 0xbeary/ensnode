@@ -1,11 +1,13 @@
-import { ContractConfig, DatasourceName } from "@ensnode/ens-deployments";
-import type { NetworkConfig } from "ponder";
-import { http, Chain } from "viem";
-
-import config from "@/config/app-config";
 import { ENSIndexerConfig } from "@/config/types";
 import { constrainContractBlockrange } from "@/lib/ponder-helpers";
+import {
+  ContractConfig,
+  Datasource,
+  DatasourceName,
+} from "@ensnode/ens-deployments";
 import { Label, Name, PluginName } from "@ensnode/utils";
+import type { NetworkConfig } from "ponder";
+import { http, Chain } from "viem";
 
 /**
  * A factory function that returns a function to create a namespaced contract name for Ponder handlers.
@@ -99,12 +101,16 @@ export interface ENSIndexerPlugin<
    * An ENSIndexerPlugin must return a Ponder Config.
    * https://ponder.sh/docs/contracts-and-networks
    */
-  config: CONFIG;
+  config: (config: ENSIndexerConfig) => CONFIG;
 
   /**
    * An `activate` handler that should load a plugin's handlers that eventually execute `ponder.on`
    */
   activate: () => Promise<void>;
+
+  getDataSources: (
+    config: ENSIndexerConfig
+  ) => Record<DatasourceName, Datasource>;
 }
 
 /**

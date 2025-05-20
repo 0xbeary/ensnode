@@ -1,6 +1,6 @@
 import { createConfig } from "ponder";
 
-import { default as appConfig } from "@/config/app-config";
+import { ENSIndexerConfig } from "@/config/types";
 import {
   activateHandlers,
   makePluginNamespace,
@@ -18,18 +18,31 @@ export const requiredDatasources = [
   DatasourceName.ThreeDNSOptimism,
   DatasourceName.ThreeDNSBase,
 ];
-const { chain: optimism, contracts: optimismContracts } =
-  appConfig.selectedEnsDeployment[DatasourceName.ThreeDNSOptimism];
-const { chain: base, contracts: baseContracts } =
-  appConfig.selectedEnsDeployment[DatasourceName.ThreeDNSBase];
 
 const namespace = makePluginNamespace(pluginName);
 
-export const config = () =>
-  createConfig({
+export const getDataSources = (config: ENSIndexerConfig) => {
+  return {
+    [DatasourceName.ThreeDNSOptimism]:
+      config.selectedEnsDeployment[DatasourceName.ThreeDNSOptimism],
+    [DatasourceName.ThreeDNSBase]:
+      config.selectedEnsDeployment[DatasourceName.ThreeDNSBase],
+  };
+};
+
+export const config = (config: ENSIndexerConfig) => {
+  const {
+    [DatasourceName.ThreeDNSOptimism]: {
+      chain: optimism,
+      contracts: optimismContracts,
+    },
+    [DatasourceName.ThreeDNSBase]: { chain: base, contracts: baseContracts },
+  } = getDataSources(config);
+
+  return createConfig({
     networks: {
-      ...networksConfigForChain(appConfig, optimism.id),
-      ...networksConfigForChain(appConfig, base.id),
+      ...networksConfigForChain(config, optimism.id),
+      ...networksConfigForChain(config, base.id),
     },
     contracts: {
       [namespace("ThreeDNSToken")]: {
@@ -51,6 +64,7 @@ export const config = () =>
       },
     },
   });
+};
 
 export const activate = activateHandlers({
   pluginName,

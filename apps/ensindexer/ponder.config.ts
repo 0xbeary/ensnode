@@ -30,7 +30,7 @@ export type MergedPonderConfig = MergedTypes<
 
 // merge the individual ponder configs from each plugin into the config we return to Ponder
 const ponderConfig = activePlugins
-  .map((plugin) => plugin.config())
+  .map((plugin) => plugin.config(config))
   .reduce((acc, val) => mergePonderConfigs(acc, val), {}) as MergedPonderConfig;
 
 // set the indexing behavior dependencies

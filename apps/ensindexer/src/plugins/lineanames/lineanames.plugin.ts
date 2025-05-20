@@ -1,6 +1,6 @@
 import { createConfig } from "ponder";
 
-import { default as appConfig } from "@/config/app-config";
+import { ENSIndexerConfig } from "@/config/types";
 import {
   activateHandlers,
   makePluginNamespace,
@@ -17,14 +17,21 @@ import { PluginName } from "@ensnode/utils";
 export const pluginName = PluginName.Lineanames;
 export const requiredDatasources = [DatasourceName.Lineanames];
 
-// extract the chain and contract configs for Lineanames Datasource in order to build ponder config
-const { chain, contracts } =
-  appConfig.selectedEnsDeployment[DatasourceName.Lineanames];
 const namespace = makePluginNamespace(pluginName);
 
-export const config = () =>
-  createConfig({
-    networks: networksConfigForChain(appConfig, chain.id),
+export const getDataSources = (config: ENSIndexerConfig) => {
+  return {
+    [DatasourceName.Lineanames]:
+      config.selectedEnsDeployment[DatasourceName.Lineanames],
+  };
+};
+
+export const config = (config: ENSIndexerConfig) => {
+  const { chain, contracts } =
+    getDataSources(config)[DatasourceName.Lineanames];
+
+  return createConfig({
+    networks: networksConfigForChain(config, chain.id),
     contracts: {
       [namespace("Registry")]: {
         network: networkConfigForContract(chain, contracts.Registry),
@@ -51,6 +58,7 @@ export const config = () =>
       },
     },
   });
+};
 
 export const activate = activateHandlers({
   pluginName,

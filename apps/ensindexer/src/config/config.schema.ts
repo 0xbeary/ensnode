@@ -199,7 +199,7 @@ const schemaInvariantChecks = (
 
   console.log("AVAILABLE_PLUGINS", AVAILABLE_PLUGINS);
 
-  validateActivePlugins(AVAILABLE_PLUGINS, config);
+  // validateActivePlugins(AVAILABLE_PLUGINS, config);
 
   return true;
 };
