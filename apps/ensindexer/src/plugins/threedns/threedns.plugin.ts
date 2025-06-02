@@ -1,91 +1,50 @@
-import { createConfig } from "ponder";
+import { createConfig as createPonderConfig } from "ponder";
 
-import config from "@/config";
-import {
-  ENSIndexerPlugin,
-  activateHandlers,
-  makePluginNamespace,
-  networkConfigForContract,
-  networksConfigForChain,
-} from "@/lib/plugin-helpers";
-import { DatasourceName, getENSDeployment } from "@ensnode/ens-deployments";
+import { definePlugin } from "@/lib/plugin-helpers";
+import { DatasourceName } from "@ensnode/ens-deployments";
 import { PluginName } from "@ensnode/ensnode-sdk";
 
 /**
  * The ThreeDNS plugin describes indexing behavior for 3DNSToken on both Optimism and Base.
  */
-const pluginName = PluginName.ThreeDNS;
+export default definePlugin({
+  // plugin name
+  name: PluginName.ThreeDNS,
 
-/**
- * Datasources required by ThreeDNS plugin.
- */
-const requiredDatasources = [DatasourceName.ThreeDNSBase, DatasourceName.ThreeDNSOptimism];
+  // list of datasources required in `pluginConfig
+  requiredDatasources: [DatasourceName.ThreeDNSBase, DatasourceName.ThreeDNSOptimism],
 
-// construct a unique contract namespace for this plugin
-const namespace = makePluginNamespace(pluginName);
+  // list of dynamic imports for indexing handlers required by the plugin
+  indexingHandlers() {
+    return [import("./handlers/ThreeDNSToken")];
+  },
 
-// plugin config factory function
-const pluginConfig = () => {
-  // extract the chain and contract configs for root Datasource in order to build ponder config
-  const deployment = getENSDeployment(config.ensDeploymentChain);
-  const { chain: optimism, contracts: optimismContracts } =
-    deployment[DatasourceName.ThreeDNSOptimism];
-  const { chain: base, contracts: baseContracts } = deployment[DatasourceName.ThreeDNSBase];
+  // plugin config factory defining Ponder configuration for the plugin
+  pluginConfig({ datasourceConfigOptions, namespace }) {
+    const threeDNSBase = datasourceConfigOptions(DatasourceName.ThreeDNSBase);
+    const threeDNSOptimism = datasourceConfigOptions(DatasourceName.ThreeDNSOptimism);
 
-  return createConfig({
-    networks: {
-      ...networksConfigForChain(optimism.id),
-      ...networksConfigForChain(base.id),
-    },
-    contracts: {
-      [namespace("ThreeDNSToken")]: {
-        network: {
-          ...networkConfigForContract(optimism, optimismContracts.ThreeDNSToken),
-          ...networkConfigForContract(base, baseContracts.ThreeDNSToken),
-        },
-        abi: optimismContracts.ThreeDNSToken.abi,
+    return createPonderConfig({
+      networks: {
+        ...threeDNSOptimism.networksConfigForChain,
+        ...threeDNSBase.networksConfigForChain,
       },
-      [namespace("Resolver")]: {
-        network: {
-          ...networkConfigForContract(optimism, optimismContracts.Resolver),
-          ...networkConfigForContract(base, baseContracts.Resolver),
+      contracts: {
+        [namespace("ThreeDNSToken")]: {
+          network: {
+            ...threeDNSOptimism.networkConfigForContract(threeDNSOptimism.contracts.ThreeDNSToken),
+            ...threeDNSBase.networkConfigForContract(threeDNSBase.contracts.ThreeDNSToken),
+          },
+          abi: threeDNSOptimism.contracts.ThreeDNSToken.abi,
         },
-        abi: optimismContracts.Resolver.abi,
+        [namespace("Resolver")]: {
+          network: {
+            ...threeDNSOptimism.networkConfigForContract(threeDNSOptimism.contracts.Resolver),
+            ...threeDNSBase.networkConfigForContract(threeDNSBase.contracts.Resolver),
+          },
+          abi: threeDNSOptimism.contracts.Resolver.abi,
+        },
       },
-    },
-  });
-};
-
-type PluginConfig = ReturnType<typeof pluginConfig>;
-
-export default {
-  /**
-   * Activate the plugin handlers for indexing.
-   */
-  get activate(): () => Promise<void> {
-    return activateHandlers({
-      pluginName,
-      namespace,
-      handlers: [import("./handlers/ThreeDNSToken")],
     });
   },
-
-  /**
-   * Load the plugin configuration lazily to prevent premature execution of
-   * nested factory functions, i.e. to ensure that the plugin configuration
-   * is only built when the plugin is activated.
-   */
-  get config(): PluginConfig {
-    return pluginConfig();
-  },
-
-  /**
-   * The plugin name, used for identification.
-   */
-  pluginName,
-
-  /**
-   * The plugin required datasources, used for validation.
-   */
-  requiredDatasources,
-} as const satisfies ENSIndexerPlugin<PluginName.ThreeDNS, PluginConfig>;
+});

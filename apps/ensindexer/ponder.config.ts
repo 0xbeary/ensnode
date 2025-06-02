@@ -22,7 +22,7 @@ export const ALL_PLUGINS = [
   threednsPlugin,
 ] as const;
 
-export type MergedPonderConfig = MergedTypes<(typeof ALL_PLUGINS)[number]["config"]> & {
+export type MergedPonderConfig = MergedTypes<(typeof ALL_PLUGINS)[number]["getConfig"]> & {
   /**
    * NOTE: we inject additional values (ones that change the behavior of the indexing logic) into the
    * Ponder config in order to alter the ponder-generated build id when these additional options change.
@@ -43,11 +43,11 @@ export type MergedPonderConfig = MergedTypes<(typeof ALL_PLUGINS)[number]["confi
 ////////
 
 // filter all plugins by those activated by the config
-const activePlugins = ALL_PLUGINS.filter((plugin) => config.plugins.includes(plugin.pluginName));
+const activePlugins = ALL_PLUGINS.filter((plugin) => config.plugins.includes(plugin.name));
 
 // combine each plugins' config into a MergedPonderConfig
 const ponderConfig = activePlugins.reduce(
-  (memo, plugin) => mergePonderConfigs(memo, plugin.config),
+  (memo, plugin) => mergePonderConfigs(memo, plugin.getConfig(config)),
   {},
 ) as MergedPonderConfig;
 
@@ -69,6 +69,6 @@ setTimeout(() => activePlugins.map((plugin) => plugin.activate()), 0);
 // Finally, return the merged config for ponder to use for type inference and runtime behavior.
 ////////
 
-console.log(`ENSIndexer running with config:\n${prettyPrintConfig(config())}`);
+console.log(`ENSIndexer running with config:\n${prettyPrintConfig(config)}`);
 
 export default ponderConfig;
