@@ -22,7 +22,7 @@ export const ALL_PLUGINS = [
   threednsPlugin,
 ] as const;
 
-type AllPluginsConfig = MergedTypes<ReturnType<(typeof ALL_PLUGINS)[number]["getConfig"]>>;
+type AllPluginsConfig = ReturnType<(typeof ALL_PLUGINS)[number]["getConfig"]>;
 
 type MergedPonderConfig = AllPluginsConfig & {
   /**
@@ -47,17 +47,19 @@ type MergedPonderConfig = AllPluginsConfig & {
 // filter all plugins by those activated by the config
 const activePlugins = ALL_PLUGINS.filter((plugin) => config.plugins.includes(plugin.name));
 
+const ponderConfig = subgraphPlugin.getConfig(config)["contracts"];
+
 // combine each plugins' config into a MergedPonderConfig
-const ponderConfig = activePlugins.reduce(
-  (memo, plugin) => mergePonderConfigs(memo, plugin.getConfig(config)),
-  {},
-) as MergedPonderConfig;
+// const ponderConfig = activePlugins.reduce(
+//   (memo, plugin) => mergePonderConfigs(memo, plugin.getConfig(config)),
+//   {} satisfies AllPluginsConfig,
+// );
 
 // inject the additional indexing behavior dependencies
-ponderConfig.indexingBehaviorDependencies = {
-  healReverseAddresses: config.healReverseAddresses,
-  indexAdditionalResolverRecords: config.indexAdditionalResolverRecords,
-};
+// ponderConfig.indexingBehaviorDependencies = {
+//   healReverseAddresses: config.healReverseAddresses,
+//   indexAdditionalResolverRecords: config.indexAdditionalResolverRecords,
+// };
 
 ////////
 // Activate the active plugins' handlers, which register indexing handlers with Ponder.
@@ -73,6 +75,6 @@ setTimeout(() => activePlugins.map((plugin) => plugin.activate()), 0);
 
 // console.log(`ENSIndexer running with config:\n${prettyPrintConfig(config)}`);
 
-console.log("ponderConfig", ponderConfig);
+console.log("ponderConfig", ponderConfig.contracts);
 
 export default ponderConfig;

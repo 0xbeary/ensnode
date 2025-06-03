@@ -7,8 +7,20 @@ import {
   getENSDeployment,
 } from "@ensnode/ens-deployments";
 import { Label, Name, PluginName } from "@ensnode/ensnode-sdk";
-import type { NetworkConfig } from "ponder";
-import { http, type Chain } from "viem";
+import type { createConfig as createPonderConfig } from "ponder";
+import { http, type Chain, Transport } from "viem";
+
+type CreateConfigReturnType<Networks, Contracts> = ReturnType<
+  typeof createPonderConfig<Networks, Contracts, {}, {}>
+>;
+
+type NetworkConfig = {
+  chainId: number;
+  transport: Transport;
+  pollingInterval?: number | undefined;
+  maxRequestsPerSecond?: number | undefined;
+  disableCache?: boolean | undefined;
+};
 
 /**
  * Options for `pluginConfig` callback on `DefinePluginOptions` type.
@@ -44,18 +56,18 @@ export interface PluginConfig<
   Networks extends Record<
     string,
     {
-      disableCache?: true;
+      disableCache?: boolean;
       chainId: number;
-      transport: any;
-      maxRequestsPerSecond: number;
+      transport: Transport;
+      maxRequestsPerSecond?: number;
     }
   > = Record<
     string,
     {
-      disableCache?: true;
+      disableCache?: boolean;
       chainId: number;
-      transport: any;
-      maxRequestsPerSecond: number;
+      transport: Transport;
+      maxRequestsPerSecond?: number;
     }
   >,
   ContractNetworks extends Record<
@@ -77,6 +89,8 @@ export interface PluginConfig<
     typeof makePluginNamespace<PLUGIN_NAME>
   >,
 > {
+  accounts: {};
+  blocks: {};
   networks: Networks;
   contracts: Record<
     keyof Contracts,
@@ -110,7 +124,9 @@ export interface DefinePluginOptions<
    * nested factory functions, i.e. to ensure that the plugin configuration
    * is only built when the plugin is activated.
    */
-  pluginConfig(options: PluginConfigOptions<REQUIRED_DATASOURCES[number]>): PLUGIN_CONFIG;
+  pluginConfig(
+    options: PluginConfigOptions<REQUIRED_DATASOURCES[number]>,
+  ): CreateConfigReturnType<PLUGIN_CONFIG["networks"], PLUGIN_CONFIG["contracts"]>;
 
   /**
    * Define indexing handlers for the plugin.
@@ -152,7 +168,9 @@ export function definePlugin<
   };
 
   // plugin config factory function
-  const getConfig = (config: ENSIndexerConfigSlice): PLUGIN_CONFIG => {
+  const getConfig = (
+    config: ENSIndexerConfigSlice,
+  ): CreateConfigReturnType<PLUGIN_CONFIG["networks"], PLUGIN_CONFIG["contracts"]> => {
     return options.pluginConfig({
       datasourceConfigOptions<T extends REQUIRED_DATASOURCES[number]>(datasourceName: T) {
         return getDatasourceConfigOptions(config, datasourceName);
@@ -257,7 +275,9 @@ export interface ENSIndexerPlugin<
    * An ENSIndexerPlugin must return a Ponder Config based on the ENSIndexer configuration.
    * https://ponder.sh/docs/contracts-and-networks
    */
-  getConfig(ensIndexerConfig: ENSIndexerConfigSlice): PLUGIN_CONFIG;
+  getConfig(
+    ensIndexerConfig: ENSIndexerConfigSlice,
+  ): CreateConfigReturnType<PLUGIN_CONFIG["networks"], PLUGIN_CONFIG["contracts"]>;
 
   /**
    * An `activate` handler that should load a plugin's handlers that eventually execute `ponder.on`
@@ -342,10 +362,10 @@ export function getDatasourceConfigOptions<DATASOURCE_NAME extends DatasourceNam
  *
  * @throws when RPC Config was not found for requested chain ID.
  */
-export function networksConfigForChain(
+export function networksConfigForChain<const ChainId extends number>(
   config: Pick<ENSIndexerConfigSlice, "rpcConfigs">,
-  chainId: number,
-) {
+  chainId: ChainId,
+): Record<string, NetworkConfig> {
   const rpcConfig = config.rpcConfigs[chainId];
 
   // invariant: RPC configs must cover configuration for the ENS Deployment defined chain
