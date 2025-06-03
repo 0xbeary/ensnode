@@ -1,8 +1,7 @@
-import { createConfig as createPonderConfig } from "ponder";
-
 import { definePlugin } from "@/lib/plugin-helpers";
 import { DatasourceName } from "@ensnode/ens-deployments";
 import { PluginName } from "@ensnode/ensnode-sdk";
+import { createConfig as createPonderConfig } from "ponder";
 
 /**
  * The Subgraph plugin describes indexing behavior for the 'Root' Datasource, in alignment with the
@@ -18,10 +17,10 @@ export default definePlugin({
   // list of dynamic imports for indexing handlers required by the plugin
   indexingHandlers() {
     return [
-      import("./handlers/Registry"),
-      import("./handlers/Registrar"),
-      import("./handlers/NameWrapper"),
-      import("../shared/Resolver"),
+      // import("./handlers/Registry"),
+      // import("./handlers/Registrar"),
+      // import("./handlers/NameWrapper"),
+      // import("../shared/Resolver"),
     ];
   },
 
@@ -32,7 +31,7 @@ export default definePlugin({
     );
 
     return createPonderConfig({
-      networks: networksConfigForChain,
+      networks: networksConfigForChain(),
       contracts: {
         [namespace("RegistryOld")]: {
           network: networkConfigForContract(contracts.RegistryOld),

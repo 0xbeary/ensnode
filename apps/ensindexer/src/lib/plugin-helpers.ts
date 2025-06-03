@@ -1,9 +1,15 @@
 import type { ENSIndexerConfig } from "@/config/types";
 import type { Blockrange } from "@/lib/types";
-import { type ContractConfig, DatasourceName, getENSDeployment } from "@ensnode/ens-deployments";
+import {
+  type ContractConfig,
+  Datasource,
+  DatasourceName,
+  getENSDeployment,
+} from "@ensnode/ens-deployments";
 import { Label, Name, PluginName } from "@ensnode/ensnode-sdk";
-import type { NetworkConfig, createConfig as createPonderConfig } from "ponder";
+import type { NetworkConfig } from "ponder";
 import { http, type Chain } from "viem";
+
 /**
  * Options for `pluginConfig` callback on `DefinePluginOptions` type.
  */
@@ -30,6 +36,56 @@ export interface PluginConfigOptions<DATASOURCE_NAME extends DatasourceName> {
 
   namespace: ReturnType<typeof makePluginNamespace>;
 }
+export interface PluginConfig<
+  PLUGIN_NAME extends PluginName,
+  DATASOURCE_NAME extends DatasourceName,
+  DCO extends DatasourceConfigOptions<DATASOURCE_NAME> = DatasourceConfigOptions<DATASOURCE_NAME>,
+  Contracts extends DCO["contracts"] = DatasourceConfigOptions<DATASOURCE_NAME>["contracts"],
+  Networks extends Record<
+    string,
+    {
+      disableCache?: true;
+      chainId: number;
+      transport: any;
+      maxRequestsPerSecond: number;
+    }
+  > = Record<
+    string,
+    {
+      disableCache?: true;
+      chainId: number;
+      transport: any;
+      maxRequestsPerSecond: number;
+    }
+  >,
+  ContractNetworks extends Record<
+    string,
+    {
+      startBlock?: number;
+      endBlock?: number;
+      address: `0x${string}` | undefined;
+    }
+  > = Record<
+    string,
+    {
+      startBlock?: number;
+      endBlock?: number;
+      address: `0x${string}` | undefined;
+    }
+  >,
+  NS extends ReturnType<typeof makePluginNamespace<PLUGIN_NAME>> = ReturnType<
+    typeof makePluginNamespace<PLUGIN_NAME>
+  >,
+> {
+  networks: Networks;
+  contracts: Record<
+    keyof Contracts,
+    {
+      abi: Contracts[keyof Contracts]["abi"];
+      network: ContractNetworks;
+    }
+  >;
+}
 
 /**
  * Options type for `definePlugin` function input.
@@ -37,6 +93,7 @@ export interface PluginConfigOptions<DATASOURCE_NAME extends DatasourceName> {
 export interface DefinePluginOptions<
   PLUGIN_NAME extends PluginName,
   REQUIRED_DATASOURCES extends readonly DatasourceName[],
+  PLUGIN_CONFIG extends PluginConfig<PLUGIN_NAME, REQUIRED_DATASOURCES[number]>,
 > {
   /**
    * The plugin name, used for identification.
@@ -53,7 +110,7 @@ export interface DefinePluginOptions<
    * nested factory functions, i.e. to ensure that the plugin configuration
    * is only built when the plugin is activated.
    */
-  pluginConfig(options: PluginConfigOptions<REQUIRED_DATASOURCES[number]>): PluginConfigResult;
+  pluginConfig(options: PluginConfigOptions<REQUIRED_DATASOURCES[number]>): PLUGIN_CONFIG;
 
   /**
    * Define indexing handlers for the plugin.
@@ -63,8 +120,6 @@ export interface DefinePluginOptions<
   indexingHandlers(): Promise<{ default: ENSIndexerPluginHandler<PLUGIN_NAME> }>[];
 }
 
-type PluginConfigResult = ReturnType<typeof createPonderConfig>;
-
 /**
  * Define a plugin for ENSIndexer
  * @param {DefinePluginOptions} options
@@ -73,9 +128,10 @@ type PluginConfigResult = ReturnType<typeof createPonderConfig>;
 export function definePlugin<
   PLUGIN_NAME extends PluginName,
   REQUIRED_DATASOURCES extends readonly DatasourceName[],
+  PLUGIN_CONFIG extends PluginConfig<PLUGIN_NAME, REQUIRED_DATASOURCES[number]>,
 >(
-  options: DefinePluginOptions<PLUGIN_NAME, REQUIRED_DATASOURCES>,
-): ENSIndexerPlugin<PLUGIN_NAME, REQUIRED_DATASOURCES, PluginConfigResult> {
+  options: DefinePluginOptions<PLUGIN_NAME, REQUIRED_DATASOURCES, PLUGIN_CONFIG>,
+): ENSIndexerPlugin<PLUGIN_NAME, REQUIRED_DATASOURCES, PLUGIN_CONFIG> {
   // construct a unique contract namespace for this plugin
   const namespace = makePluginNamespace(options.name);
 
@@ -96,7 +152,7 @@ export function definePlugin<
   };
 
   // plugin config factory function
-  const getConfig = (config: ENSIndexerConfigSlice): PluginConfigResult => {
+  const getConfig = (config: ENSIndexerConfigSlice): PLUGIN_CONFIG => {
     return options.pluginConfig({
       datasourceConfigOptions<T extends REQUIRED_DATASOURCES[number]>(datasourceName: T) {
         return getDatasourceConfigOptions(config, datasourceName);
@@ -129,7 +185,7 @@ export function definePlugin<
      * The plugin required datasources, used for validation.
      */
     requiredDatasources: options.requiredDatasources,
-  } as const satisfies ENSIndexerPlugin<PLUGIN_NAME, REQUIRED_DATASOURCES, PluginConfigResult>;
+  } as const satisfies ENSIndexerPlugin<PLUGIN_NAME, REQUIRED_DATASOURCES, PLUGIN_CONFIG>;
 }
 
 /**
@@ -163,7 +219,7 @@ export function makePluginNamespace<PLUGIN_NAME extends PluginName>(pluginName: 
   return function pluginNamespace<CONTRACT_NAME extends string>(
     contractName: CONTRACT_NAME,
   ): `${PLUGIN_NAME}/${CONTRACT_NAME}` {
-    return `${pluginName}/${contractName}`;
+    return `${pluginName}/${contractName}` as const;
   };
 }
 
@@ -182,9 +238,9 @@ export type ENSIndexerConfigSlice = Pick<
  * Describes an ENSIndexerPlugin used within the ENSIndexer project.
  */
 export interface ENSIndexerPlugin<
-  PLUGIN_NAME extends PluginName = PluginName,
-  REQUIRED_DATASOURCES extends readonly DatasourceName[] = [],
-  CONFIG = unknown,
+  PLUGIN_NAME extends PluginName,
+  REQUIRED_DATASOURCES extends readonly DatasourceName[],
+  PLUGIN_CONFIG extends PluginConfig<PLUGIN_NAME, REQUIRED_DATASOURCES[number]>,
 > {
   /**
    * A unique plugin name for identification
@@ -201,7 +257,7 @@ export interface ENSIndexerPlugin<
    * An ENSIndexerPlugin must return a Ponder Config based on the ENSIndexer configuration.
    * https://ponder.sh/docs/contracts-and-networks
    */
-  getConfig(ensIndexerConfig: ENSIndexerConfigSlice): CONFIG;
+  getConfig(ensIndexerConfig: ENSIndexerConfigSlice): PLUGIN_CONFIG;
 
   /**
    * An `activate` handler that should load a plugin's handlers that eventually execute `ponder.on`
@@ -233,6 +289,11 @@ type ContractsForDatasource<T extends DatasourceName> = DeploymentForDatasource<
 // Ensure proper typing for chain based on datasource
 type ChainForDatasource<T extends DatasourceName> = DeploymentForDatasource<T>["chain"];
 
+export type DatasourceConfigOptions<DATASOURCE_NAME extends DatasourceName> = ReturnType<
+  typeof getDatasourceConfigOptions<DATASOURCE_NAME>
+> &
+  Datasource;
+
 /**
  * Factory function creating required values for a given datasource and ENSIndexer config.
  * It's necessary for defining a plugin.
@@ -241,7 +302,7 @@ type ChainForDatasource<T extends DatasourceName> = DeploymentForDatasource<T>["
  * @param datasourceName
  * @returns
  */
-function getDatasourceConfigOptions<DATASOURCE_NAME extends DatasourceName>(
+export function getDatasourceConfigOptions<DATASOURCE_NAME extends DatasourceName>(
   config: Pick<ENSIndexerConfigSlice, "ensDeploymentChain" | "globalBlockrange" | "rpcConfigs">,
   datasourceName: DATASOURCE_NAME,
 ) {

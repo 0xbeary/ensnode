@@ -1,8 +1,7 @@
-import { createConfig as createPonderConfig } from "ponder";
-
 import { definePlugin } from "@/lib/plugin-helpers";
 import { DatasourceName } from "@ensnode/ens-deployments";
 import { PluginName } from "@ensnode/ensnode-sdk";
+import { createConfig as createPonderConfig } from "ponder";
 
 /**
  * The ThreeDNS plugin describes indexing behavior for 3DNSToken on both Optimism and Base.
@@ -16,7 +15,9 @@ export default definePlugin({
 
   // list of dynamic imports for indexing handlers required by the plugin
   indexingHandlers() {
-    return [import("./handlers/ThreeDNSToken")];
+    return [
+      // import("./handlers/ThreeDNSToken")
+    ];
   },
 
   // plugin config factory defining Ponder configuration for the plugin
@@ -26,8 +27,8 @@ export default definePlugin({
 
     return createPonderConfig({
       networks: {
-        ...threeDNSOptimism.networksConfigForChain,
-        ...threeDNSBase.networksConfigForChain,
+        ...threeDNSOptimism.networksConfigForChain(),
+        ...threeDNSBase.networksConfigForChain(),
       },
       contracts: {
         [namespace("ThreeDNSToken")]: {

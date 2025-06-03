@@ -1,8 +1,7 @@
-import { createConfig as createPonderConfig } from "ponder";
-
 import { definePlugin } from "@/lib/plugin-helpers";
 import { DatasourceName } from "@ensnode/ens-deployments";
 import { PluginName } from "@ensnode/ensnode-sdk";
+import { createConfig as createPonderConfig } from "ponder";
 
 /**
  * The Basenames plugin describes indexing behavior for the Basenames ENS Datasource, leveraging
@@ -18,9 +17,9 @@ export default definePlugin({
   // list of dynamic imports for indexing handlers required by the plugin
   indexingHandlers() {
     return [
-      import("./handlers/Registry"),
-      import("./handlers/Registrar"),
-      import("../shared/Resolver"),
+      // import("./handlers/Registry"),
+      // import("./handlers/Registrar"),
+      // import("../shared/Resolver"),
     ];
   },
 
@@ -31,7 +30,7 @@ export default definePlugin({
     );
 
     return createPonderConfig({
-      networks: networksConfigForChain,
+      networks: networksConfigForChain(),
       contracts: {
         [namespace("Registry")]: {
           network: networkConfigForContract(contracts.Registry),
