@@ -16,7 +16,7 @@ export default defineConfig({
   sourcemap: true,
   dts: true,
   clean: true,
-  external: ["viem", "@ensnode/ensnode-sdk"],
+  treeshake: true,
   outDir: "./dist",
   esbuildOptions(options) {
     options.mainFields = ["browser", "module", "main"];

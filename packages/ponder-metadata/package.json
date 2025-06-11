@@ -38,24 +38,25 @@
     "lint": "biome check --write",
     "lint:ci": "biome ci"
   },
-  "dependencies": {
-    "@ensnode/ensrainbow-sdk": "workspace:*",
-    "drizzle-orm": "catalog:",
-    "parse-prometheus-text-format": "^1.1.1",
-    "viem": "catalog:"
-  },
   "devDependencies": {
     "@biomejs/biome": "catalog:",
+    "@ensnode/ensrainbow-sdk": "workspace:*",
     "@ensnode/shared-configs": "workspace:*",
     "@types/node": "catalog:",
+    "drizzle-orm": "catalog:",
     "hono": "catalog:",
+    "parse-prometheus-text-format": "^1.1.1",
     "ponder": "catalog:",
     "tsup": "catalog:",
     "typescript": "catalog:",
+    "viem": "catalog:",
     "vitest": "catalog:"
   },
   "peerDependencies": {
+    "@ensnode/ensrainbow-sdk": "workspace:*",
+    "drizzle-orm": "catalog:",
     "hono": "catalog:",
-    "ponder": "catalog:"
+    "ponder": "catalog:",
+    "viem": "catalog:"
   }
 }

@@ -10,7 +10,7 @@ export default defineConfig({
   sourcemap: true,
   dts: true,
   clean: true,
-  external: ["viem"],
+  treeshake: true,
   outDir: "./dist",
   esbuildOptions(options) {
     options.mainFields = ["browser", "module", "main"];

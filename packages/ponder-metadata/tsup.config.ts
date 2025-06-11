@@ -10,6 +10,6 @@ export default defineConfig({
   sourcemap: true,
   dts: true,
   clean: true,
-  external: ["drizzle-orm", "ponder", "hono"],
+  treeshake: true,
   outDir: "./dist",
 });

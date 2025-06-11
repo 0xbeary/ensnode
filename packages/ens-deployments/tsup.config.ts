@@ -8,9 +8,9 @@ export default defineConfig({
   bundle: true,
   splitting: false,
   sourcemap: true,
+  treeshake: true,
   dts: true,
   clean: true,
-  external: ["viem", "@ponder/utils"],
   outDir: "./dist",
   esbuildOptions(options) {
     options.mainFields = ["browser", "module", "main"];

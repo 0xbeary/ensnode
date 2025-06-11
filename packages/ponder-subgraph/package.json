@@ -38,25 +38,25 @@
     "lint": "biome check --write",
     "lint:ci": "biome ci"
   },
-  "dependencies": {
+  "devDependencies": {
+    "@biomejs/biome": "catalog:",
+    "@ensnode/shared-configs": "workspace:*",
     "@escape.tech/graphql-armor-max-aliases": "^2.6.0",
     "@escape.tech/graphql-armor-max-depth": "^2.4.0",
     "@escape.tech/graphql-armor-max-tokens": "^2.5.0",
+    "@types/node": "catalog:",
     "dataloader": "^2.2.3",
     "drizzle-orm": "catalog:",
     "graphql": "^16.10.0",
     "graphql-scalars": "^1.24.0",
-    "graphql-yoga": "^5.10.9"
-  },
-  "devDependencies": {
-    "@biomejs/biome": "catalog:",
-    "@ensnode/shared-configs": "workspace:*",
-    "@types/node": "catalog:",
+    "graphql-yoga": "^5.10.9",
     "hono": "catalog:",
     "tsup": "catalog:",
     "typescript": "catalog:"
   },
   "peerDependencies": {
+    "drizzle-orm": "catalog:",
+    "graphql": "^16.10.0",
     "hono": "catalog:"
   }
 }

@@ -14,16 +14,6 @@ export default defineConfig({
   sourcemap: true,
   dts: true,
   clean: true,
-  external: [
-    "@escape.tech/graphql-armor-max-aliases",
-    "@escape.tech/graphql-armor-max-depth",
-    "@escape.tech/graphql-armor-max-tokens",
-    "dataloader",
-    "drizzle-orm",
-    "graphql",
-    "graphql-scalars",
-    "graphql-yoga",
-    "hono",
-  ],
+  treeshake: true,
   outDir: "./dist",
 });
