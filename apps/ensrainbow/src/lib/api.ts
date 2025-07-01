@@ -9,12 +9,16 @@ import {
   buildLabelSetId,
   buildLabelSetVersion,
 } from "@ensnode/ensrainbow-sdk";
+// MCP imports
+import { StreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/streamableHttp.js";
+import { toFetchResponse, toReqRes } from "fetch-to-node";
 import { Hono } from "hono";
 import type { Context as HonoContext } from "hono";
 import { cors } from "hono/cors";
 
 import packageJson from "@/../package.json";
 import { DB_SCHEMA_VERSION, ENSRainbowDB } from "@/lib/database";
+import { createENSRainbowMCPServer } from "@/lib/mcp-server";
 import { ENSRainbowServer } from "@/lib/server";
 import { logger } from "@/utils/logger";
 
@@ -33,6 +37,15 @@ export async function createApi(db: ENSRainbowDB): Promise<Hono> {
       origin: "*",
       // ENSRainbow API is read-only, so only allow read methods
       allowMethods: ["HEAD", "GET", "OPTIONS"],
+    }),
+  );
+
+  // Enable CORS for MCP endpoint
+  api.use(
+    "/mcp",
+    cors({
+      origin: "*",
+      allowMethods: ["POST", "GET", "OPTIONS"],
     }),
   );
 
@@ -112,6 +125,46 @@ export async function createApi(db: ENSRainbowDB): Promise<Hono> {
     };
     logger.debug(`Version result:`, result);
     return c.json(result);
+  });
+
+  // MCP endpoint using mcp-hono-stateless pattern
+  api.post("/mcp", async (c: HonoContext) => {
+    try {
+      const { req, res } = toReqRes(c.req.raw);
+
+      const mcpServer = createENSRainbowMCPServer(server);
+      const transport = new StreamableHTTPServerTransport({
+        sessionIdGenerator: undefined, // Stateless mode
+      });
+
+      await mcpServer.connect(transport);
+      await transport.handleRequest(req, res, await c.req.json());
+
+      res.on("close", () => {
+        logger.debug("MCP request closed");
+        transport.close();
+        mcpServer.close();
+      });
+
+      return toFetchResponse(res);
+    } catch (error) {
+      logger.error("MCP endpoint error:", error);
+      return c.json(
+        {
+          error: "Internal MCP server error",
+          message: error instanceof Error ? error.message : "Unknown error",
+        },
+        500,
+      );
+    }
+  });
+
+  // Optional: MCP GET endpoint for SSE streams (returns 405 if not supported)
+  api.get("/mcp", async (c: HonoContext) => {
+    logger.debug("MCP GET request - not supporting SSE streams");
+    return c.text("Method Not Allowed - POST only", 405, {
+      Allow: "POST",
+    });
   });
 
   return api;
