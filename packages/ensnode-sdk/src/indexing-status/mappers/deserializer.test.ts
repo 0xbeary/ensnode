@@ -102,172 +102,233 @@ describe("Indexing Status", () => {
       expect(deserializeIndexingStatus(indexingStatusDto)).toStrictEqual(indexingStatusDomain);
     });
 
-    it("can enforce invariants relevant to a chain status permutation: unhealthyRpcAndSyncQueued", () => {
-      // Permutation ID: 1
-      const unhealthyRpcAndSyncQueued = {
-        chainId: 1,
-        rpcHealth: ENSNode.RPCHealth.Unhealthy,
-        indexingPhase: ENSNode.IndexingPhase.SyncQueued,
-        firstBlockToIndex: {
-          number: 123,
-        },
-        lastIndexedBlock: null,
-        lastSyncedBlock: null,
-        latestSafeBlock: null,
-      } satisfies ENSNode.RpcUnhealthyAndSyncQueued<IndexingStatusDTO.BlockInfo>;
+    describe("Indexing Phase: Sync Queued", () => {
+      it("can enforce invariants relevant to a chain status permutation: unhealthyRpcAndSyncQueued", () => {
+        // Permutation ID: 1
+        const unhealthyRpcAndSyncQueued = {
+          chainId: 1,
+          rpcHealth: ENSNode.RPCHealth.Unhealthy,
+          indexingPhase: ENSNode.IndexingPhase.SyncQueued,
+          firstBlockToIndex: {
+            number: 123,
+          },
+          lastIndexedBlock: null,
+          lastSyncedBlock: null,
+          latestSafeBlock: null,
+        } satisfies ENSNode.RpcUnhealthyAndSyncQueued<IndexingStatusDTO.BlockInfo>;
 
-      expect(() =>
-        deserializeIndexingStatus({
-          "1": unhealthyRpcAndSyncQueued,
-        }),
-      ).not.toThrowError();
+        expect(() =>
+          deserializeIndexingStatus({
+            "1": unhealthyRpcAndSyncQueued,
+          }),
+        ).not.toThrowError();
+      });
+
+      it("can enforce invariants relevant to a chain status permutation: healthyRpcAndSyncQueued", () => {
+        // Permutation ID: 2
+        const healthyRpcAndSyncQueued = {
+          chainId: 2,
+          rpcHealth: ENSNode.RPCHealth.Healthy,
+          firstBlockToIndex: {
+            number: 123,
+            createdAt: "2025-07-11T16:54:43.000Z",
+          },
+          indexingPhase: ENSNode.IndexingPhase.SyncQueued,
+          lastIndexedBlock: null,
+          lastSyncedBlock: null,
+          latestSafeBlock: {
+            number: 456,
+            createdAt: "2025-07-11T16:54:43.000Z",
+          },
+        } satisfies ENSNode.RpcHealthyAndSyncQueued<IndexingStatusDTO.BlockInfo>;
+
+        expect(() =>
+          deserializeIndexingStatus({
+            "2": healthyRpcAndSyncQueued,
+          }),
+        ).not.toThrowError();
+      });
     });
 
-    it("can enforce invariants relevant to a chain status permutation: healthyRpcAndSyncQueued", () => {
-      // Permutation ID: 2
-      const healthyRpcAndSyncQueued = {
-        chainId: 2,
-        rpcHealth: ENSNode.RPCHealth.Healthy,
-        firstBlockToIndex: {
-          number: 123,
-          createdAt: "2025-07-11T16:54:43.000Z",
-        },
-        indexingPhase: ENSNode.IndexingPhase.SyncQueued,
-        lastIndexedBlock: null,
-        lastSyncedBlock: null,
-        latestSafeBlock: {
-          number: 456,
-          createdAt: "2025-07-11T16:54:43.000Z",
-        },
-      } satisfies ENSNode.RpcHealthyAndSyncQueued<IndexingStatusDTO.BlockInfo>;
+    describe("Indexing Phase: Indexing Queued", () => {
+      it("can enforce invariants relevant to a chain status permutation: unhealthyRpcAndIndexingQueued", () => {
+        // Permutation ID: 3
+        const unhealthyRpcAndIndexingQueued = {
+          chainId: 3,
+          rpcHealth: ENSNode.RPCHealth.Unhealthy,
+          indexingPhase: ENSNode.IndexingPhase.IndexingQueued,
+          firstBlockToIndex: {
+            number: 123,
+            createdAt: "2025-07-11T16:54:43.000Z",
+          },
+          lastIndexedBlock: null,
+          lastSyncedBlock: {
+            number: 456,
+            createdAt: "2025-07-11T16:54:43.000Z",
+          },
+          latestSafeBlock: null,
+        } satisfies ENSNode.RpcUnhealthyAndIndexingQueued<IndexingStatusDTO.BlockInfo>;
 
-      expect(() =>
-        deserializeIndexingStatus({
-          "2": healthyRpcAndSyncQueued,
-        }),
-      ).not.toThrowError();
+        expect(() =>
+          deserializeIndexingStatus({
+            "3": unhealthyRpcAndIndexingQueued,
+          }),
+        ).not.toThrowError();
+
+        // test impossible situation: `firstBlockToIndex.number` is after `lastSyncedBlock.number`
+        const incorrectChainStatus = {
+          ...unhealthyRpcAndIndexingQueued,
+          firstBlockToIndex: unhealthyRpcAndIndexingQueued.lastSyncedBlock,
+          lastSyncedBlock: unhealthyRpcAndIndexingQueued.firstBlockToIndex,
+        } satisfies ENSNode.RpcUnhealthyAndIndexingQueued<IndexingStatusDTO.BlockInfo>;
+
+        expect(() =>
+          deserializeIndexingStatus({
+            "3": incorrectChainStatus,
+          }),
+        ).toThrowError(`Failed to parse IndexingStatus DTO: \n✖ Invalid input\n  → at 3\n`);
+      });
+
+      it("can enforce invariants relevant to a chain status permutation: healthyRpcAndIndexingQueued", () => {
+        // Permutation ID: 4
+        const healthyRpcAndIndexingQueued = {
+          chainId: 4,
+          rpcHealth: ENSNode.RPCHealth.Healthy,
+          indexingPhase: ENSNode.IndexingPhase.IndexingQueued,
+          firstBlockToIndex: {
+            number: 123,
+            createdAt: "2025-07-11T16:54:43.000Z",
+          },
+          lastIndexedBlock: null,
+          lastSyncedBlock: {
+            number: 456,
+            createdAt: "2025-07-11T16:54:43.000Z",
+          },
+          latestSafeBlock: {
+            number: 789,
+            createdAt: "2025-07-11T16:54:43.000Z",
+          },
+        } satisfies ENSNode.RpcHealthyAndIndexingQueued<IndexingStatusDTO.BlockInfo>;
+
+        expect(() =>
+          deserializeIndexingStatus({
+            "4": healthyRpcAndIndexingQueued,
+          }),
+        ).not.toThrowError();
+
+        // test impossible situation: `firstBlockToIndex.number` is after `lastSyncedBlock.number`
+        const incorrectChainStatus = {
+          ...healthyRpcAndIndexingQueued,
+          firstBlockToIndex: healthyRpcAndIndexingQueued.lastSyncedBlock,
+          lastSyncedBlock: healthyRpcAndIndexingQueued.firstBlockToIndex,
+        } satisfies ENSNode.RpcHealthyAndIndexingQueued<IndexingStatusDTO.BlockInfo>;
+
+        expect(() =>
+          deserializeIndexingStatus({
+            "4": incorrectChainStatus,
+          }),
+        ).toThrowError(`Failed to parse IndexingStatus DTO: \n✖ Invalid input\n  → at 4\n`);
+      });
     });
 
-    it("can enforce invariants relevant to a chain status permutation: unhealthyRpcAndIndexingQueued", () => {
-      // Permutation ID: 3
-      const unhealthyRpcAndIndexingQueued = {
-        chainId: 3,
-        rpcHealth: ENSNode.RPCHealth.Unhealthy,
-        indexingPhase: ENSNode.IndexingPhase.IndexingQueued,
-        firstBlockToIndex: {
-          number: 123,
-          createdAt: "2025-07-11T16:54:43.000Z",
-        },
-        lastIndexedBlock: null,
-        lastSyncedBlock: {
-          number: 456,
-          createdAt: "2025-07-11T16:54:43.000Z",
-        },
-        latestSafeBlock: null,
-      } satisfies ENSNode.RpcUnhealthyAndIndexingQueued<IndexingStatusDTO.BlockInfo>;
+    describe("Indexing Phase: Indexing Started", () => {
+      it("can enforce invariants relevant to a chain status permutation: unhealthyRpcAndIndexingStarted", () => {
+        // Permutation ID: 5
+        const unhealthyRpcAndIndexingStarted = {
+          chainId: 5,
+          rpcHealth: ENSNode.RPCHealth.Unhealthy,
+          indexingPhase: ENSNode.IndexingPhase.IndexingStarted,
+          firstBlockToIndex: {
+            number: 123,
+            createdAt: "2025-07-11T16:54:43.000Z",
+          },
+          lastIndexedBlock: {
+            number: 333,
+            createdAt: "2025-07-11T16:54:43.000Z",
+          },
+          lastSyncedBlock: {
+            number: 456,
+            createdAt: "2025-07-11T16:54:43.000Z",
+          },
+          latestSafeBlock: null,
+        } satisfies ENSNode.RpcUnhealthyAndIndexingStarted<IndexingStatusDTO.BlockInfo>;
 
-      expect(() =>
-        deserializeIndexingStatus({
-          "3": unhealthyRpcAndIndexingQueued,
-        }),
-      ).not.toThrowError();
+        expect(() =>
+          deserializeIndexingStatus({
+            "5": unhealthyRpcAndIndexingStarted,
+          }),
+        ).not.toThrowError();
 
-      // test impossible situation: `firstBlockToIndex.number` is after `lastSyncedBlock.number`
-      const incorrectChainStatus = {
-        ...unhealthyRpcAndIndexingQueued,
-        firstBlockToIndex: unhealthyRpcAndIndexingQueued.lastSyncedBlock,
-        lastSyncedBlock: unhealthyRpcAndIndexingQueued.firstBlockToIndex,
-      } satisfies ENSNode.RpcUnhealthyAndIndexingQueued<IndexingStatusDTO.BlockInfo>;
+        // test impossible situation: `firstBlockToIndex.number` is after `lastSyncedBlock.number`
+        let incorrectChainStatus = {
+          ...unhealthyRpcAndIndexingStarted,
+          firstBlockToIndex: unhealthyRpcAndIndexingStarted.lastSyncedBlock,
+          lastSyncedBlock: unhealthyRpcAndIndexingStarted.firstBlockToIndex,
+        } satisfies ENSNode.RpcUnhealthyAndIndexingStarted<IndexingStatusDTO.BlockInfo>;
 
-      expect(() =>
-        deserializeIndexingStatus({
-          "3": incorrectChainStatus,
-        }),
-      ).toThrowError(`Failed to parse IndexingStatus DTO: \n✖ Invalid input\n  → at 3\n`);
-    });
+        expect(() =>
+          deserializeIndexingStatus({
+            "5": incorrectChainStatus,
+          }),
+        ).toThrowError(`Failed to parse IndexingStatus DTO: \n✖ Invalid input\n  → at 5\n`);
 
-    it("can enforce invariants relevant to a chain status permutation: unhealthyRpcAndIndexingQueued", () => {
-      // Permutation ID: 4
-      const healthyRpcAndIndexingQueued = {
-        chainId: 4,
-        rpcHealth: ENSNode.RPCHealth.Healthy,
-        indexingPhase: ENSNode.IndexingPhase.IndexingQueued,
-        firstBlockToIndex: {
-          number: 123,
-          createdAt: "2025-07-11T16:54:43.000Z",
-        },
-        lastIndexedBlock: null,
-        lastSyncedBlock: {
-          number: 456,
-          createdAt: "2025-07-11T16:54:43.000Z",
-        },
-        latestSafeBlock: {
-          number: 789,
-          createdAt: "2025-07-11T16:54:43.000Z",
-        },
-      } satisfies ENSNode.RpcHealthyAndIndexingQueued<IndexingStatusDTO.BlockInfo>;
+        // test impossible situation: `lastSyncedBlock.number` is after `lastIndexedBlock.number`
+        incorrectChainStatus = {
+          ...unhealthyRpcAndIndexingStarted,
+          lastIndexedBlock: unhealthyRpcAndIndexingStarted.lastSyncedBlock,
+          lastSyncedBlock: unhealthyRpcAndIndexingStarted.lastIndexedBlock,
+        } satisfies ENSNode.RpcUnhealthyAndIndexingStarted<IndexingStatusDTO.BlockInfo>;
 
-      expect(() =>
-        deserializeIndexingStatus({
-          "4": healthyRpcAndIndexingQueued,
-        }),
-      ).not.toThrowError();
+        expect(() =>
+          deserializeIndexingStatus({
+            "5": incorrectChainStatus,
+          }),
+        ).toThrowError(`Failed to parse IndexingStatus DTO: \n✖ Invalid input\n  → at 5\n`);
+      });
 
-      // test impossible situation: `firstBlockToIndex.number` is after `lastSyncedBlock.number`
-      const incorrectChainStatus = {
-        ...healthyRpcAndIndexingQueued,
-        firstBlockToIndex: healthyRpcAndIndexingQueued.lastSyncedBlock,
-        lastSyncedBlock: healthyRpcAndIndexingQueued.firstBlockToIndex,
-      } satisfies ENSNode.RpcHealthyAndIndexingQueued<IndexingStatusDTO.BlockInfo>;
+      it("can enforce invariants relevant to a chain status permutation: healthyRpcAndIndexingStarted", () => {
+        // Permutation ID: 6
+        const healthyRpcAndIndexingStarted = {
+          chainId: 6,
+          rpcHealth: ENSNode.RPCHealth.Healthy,
+          indexingPhase: ENSNode.IndexingPhase.IndexingStarted,
+          firstBlockToIndex: {
+            number: 123,
+            createdAt: "2025-07-11T16:54:43.000Z",
+          },
+          lastIndexedBlock: {
+            number: 333,
+            createdAt: "2025-07-11T16:54:43.000Z",
+          },
+          lastSyncedBlock: {
+            number: 456,
+            createdAt: "2025-07-11T16:54:43.000Z",
+          },
+          latestSafeBlock: {
+            number: 789,
+            createdAt: "2025-07-11T16:54:43.000Z",
+          },
+        } satisfies ENSNode.RpcHealthyAndIndexingStarted<IndexingStatusDTO.BlockInfo>;
 
-      expect(() =>
-        deserializeIndexingStatus({
-          "4": incorrectChainStatus,
-        }),
-      ).toThrowError(`Failed to parse IndexingStatus DTO: \n✖ Invalid input\n  → at 4\n`);
+        expect(() =>
+          deserializeIndexingStatus({
+            "6": healthyRpcAndIndexingStarted,
+          }),
+        ).not.toThrowError();
+
+        // test impossible situation: `firstBlockToIndex.number` is after `lastSyncedBlock.number`
+        const incorrectChainStatus = {
+          ...healthyRpcAndIndexingStarted,
+          firstBlockToIndex: healthyRpcAndIndexingStarted.lastSyncedBlock,
+          lastSyncedBlock: healthyRpcAndIndexingStarted.firstBlockToIndex,
+        } satisfies ENSNode.RpcHealthyAndIndexingStarted<IndexingStatusDTO.BlockInfo>;
+
+        expect(() =>
+          deserializeIndexingStatus({
+            "6": incorrectChainStatus,
+          }),
+        ).toThrowError(`Failed to parse IndexingStatus DTO: \n✖ Invalid input\n  → at 6\n`);
+      });
     });
   });
 });
-
-// Permutation ID: 5
-const unhealthyRpcAndIndexingStarted = {
-  chainId: 5,
-  rpcHealth: ENSNode.RPCHealth.Unhealthy,
-  indexingPhase: ENSNode.IndexingPhase.IndexingStarted,
-  firstBlockToIndex: {
-    number: 123,
-    createdAt: "2025-07-11T16:54:43.000Z",
-  },
-  lastIndexedBlock: {
-    number: 333,
-    createdAt: "2025-07-11T16:54:43.000Z",
-  },
-  lastSyncedBlock: {
-    number: 456,
-    createdAt: "2025-07-11T16:54:43.000Z",
-  },
-  latestSafeBlock: null,
-} satisfies ENSNode.RpcUnhealthyAndIndexingStarted<IndexingStatusDTO.BlockInfo>;
-
-// Permutation ID: 6
-const healthyRpcAndIndexingStarted = {
-  chainId: 6,
-  rpcHealth: ENSNode.RPCHealth.Healthy,
-  indexingPhase: ENSNode.IndexingPhase.IndexingStarted,
-  firstBlockToIndex: {
-    number: 123,
-    createdAt: "2025-07-11T16:54:43.000Z",
-  },
-  lastIndexedBlock: {
-    number: 333,
-    createdAt: "2025-07-11T16:54:43.000Z",
-  },
-  lastSyncedBlock: {
-    number: 456,
-    createdAt: "2025-07-11T16:54:43.000Z",
-  },
-  latestSafeBlock: {
-    number: 789,
-    createdAt: "2025-07-11T16:54:43.000Z",
-  },
-} satisfies ENSNode.RpcHealthyAndIndexingStarted<IndexingStatusDTO.BlockInfo>;

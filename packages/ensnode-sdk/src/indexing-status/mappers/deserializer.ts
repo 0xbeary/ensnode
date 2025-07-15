@@ -10,18 +10,6 @@ const PositiveIntegerSchema = z.coerce
   .int({ error: `Value must be a positive integer.` })
   .min(0, { error: `Value must be a positive integer.` });
 
-const IndexingPhaseSchema = z.enum(ENSNode.IndexingPhase, {
-  error: `Value must be a valid ENSNode IndexingPhase. Valid choices are: ${Object.values(
-    ENSNode.IndexingPhase,
-  ).join(", ")}`,
-});
-
-const RpcHealthSchema = z.enum(ENSNode.RPCHealth, {
-  error: `Value must be a valid ENSNode RPCHealth. Valid choices are: ${Object.values(
-    ENSNode.RPCHealth,
-  ).join(", ")}`,
-});
-
 // Partial BlockInfo schema that only has number
 const PartialBlockInfoSchema = z.object({
   number: PositiveIntegerSchema,
@@ -163,12 +151,6 @@ export function deserializeIndexingStatus(
   indexingStatusDto: IndexingStatusDTO.IndexingStatus,
 ): IndexingStatusDomain.IndexingStatus {
   const parsed = IndexingStatusDtoSchema.safeParse(indexingStatusDto);
-
-  // if (parsed.error) {
-  //   throw new Error(
-  //     "Failed to parse IndexingStatus DTO:" + JSON.stringify(treeifyError(parsed.error), null, 2),
-  //   );
-  // }
 
   if (parsed.error) {
     throw new Error(`Failed to parse IndexingStatus DTO: \n${z.prettifyError(parsed.error)}\n`);

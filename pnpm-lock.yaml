@@ -612,9 +612,6 @@ importers:
       '@ensdomains/address-encoder':
         specifier: ^1.1.2
         version: 1.1.2
-      date-fns:
-        specifier: 'catalog:'
-        version: 4.1.0
       zod:
         specifier: 'catalog:'
         version: 3.25.7
